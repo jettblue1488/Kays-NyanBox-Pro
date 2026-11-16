@@ -15,8 +15,23 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --console=plain > build.log 2>&1 || {
+            echo "=== FIRST GRADLE ERROR LINES ==="
+            grep -n -m 25 -E 'What went wrong:|Could not resolve|Could not find|Caused by:|FAILURE:|> .*failed|Exception|error:' build.log || true
+            echo "=== LAST 90 LOG LINES ==="
+            tail -90 build.log
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Kays-NyanBox-Pro-build-logs
+          path: build.log
+      - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: Kays-NyanBox-Pro-debug-APK
           path: app/build/outputs/apk/debug/*.apk
